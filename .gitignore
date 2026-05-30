@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# ML Model files
+models/
+*.gguf
+*.bin
+
+# Audio / voice files
+custom_voices/
+*.wav
+*.mp3
+
+# macOS
+.DS_Store
+
+# Config
+config.yaml
+
+# Launchd plist
+com.danielkliewer.objective03.plist
+
+# User data
+~/
+
+# Environment
+.env
+.env.*

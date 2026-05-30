@@ -1,0 +1,56 @@
+[project]
+name = "objective03"
+version = "0.1.0"
+description = "A synthetic epistemology engine masquerading as an infinite radio station"
+requires-python = ">=3.11"
+dependencies = [
+    "kuzu>=0.7",
+    "qdrant-client>=1.9",
+    "llama-cpp-python>=0.2",
+    "textual>=0.52",
+    "rich>=13.7",
+    "structlog>=24.1",
+    "aiohttp>=3.9",
+    "feedparser>=6.0",
+    "asyncpraw>=7.7",
+    "yt-dlp>=2024.4",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "sounddevice>=0.4",
+    "soundfile>=0.12",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "mypy>=1.8",
+    "ruff>=0.3",
+    "pytest-cov>=4.1",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+objective03 = "src.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

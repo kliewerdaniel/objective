@@ -1,0 +1,4 @@
+mlx-audio>=0.4.2
+soundfile
+numpy
+huggingface-hub
