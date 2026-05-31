@@ -7,8 +7,12 @@ __pycache__/
 .venv/
 .pytest_cache/
 *.egg-info/
+objective03.egg-info/
 dist/
 build/
+
+# Linting / tooling
+.ruff_cache/
 
 # ML Model files
 models/
@@ -17,8 +21,16 @@ models/
 
 # Audio / voice files
 custom_voices/
+custom_voice/
+*custom_voice*/*.wav
+*custom_voice*/*.mp3
 *.wav
 *.mp3
+
+# Electron / Node
+electron/node_modules/
+electron/dist/
+electron/dist-electron/
 
 # macOS
 .DS_Store

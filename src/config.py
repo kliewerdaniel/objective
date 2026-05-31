@@ -90,6 +90,7 @@ class SystemConfig(BaseModel):
     name: str = "objective03"
     data_dir: str = str(DATA_DIR)
     log_level: str = "INFO"
+    prompts_dir: str = "prompts"
 
 
 class Config(BaseModel):
@@ -145,17 +146,17 @@ class Config(BaseModel):
 
     def ensure_dirs(self):
         dirs = [
-            Path(self.system.data_dir),
-            Path(self.system.data_dir) / "audio" / "cache",
-            Path(self.system.data_dir) / "audio" / "queue",
-            Path(self.system.data_dir) / "audio" / "archive",
-            Path(self.system.data_dir) / "logs",
-            Path(self.system.data_dir) / "state",
-            Path(self.system.data_dir) / "backups",
+            Path(self.system.data_dir).expanduser(),
+            Path(self.system.data_dir).expanduser() / "audio" / "cache",
+            Path(self.system.data_dir).expanduser() / "audio" / "queue",
+            Path(self.system.data_dir).expanduser() / "audio" / "archive",
+            Path(self.system.data_dir).expanduser() / "logs",
+            Path(self.system.data_dir).expanduser() / "state",
+            Path(self.system.data_dir).expanduser() / "backups",
         ]
         for d in dirs:
             d.mkdir(parents=True, exist_ok=True)
 
     @property
     def audio_dir(self) -> Path:
-        return Path(self.system.data_dir) / "audio"
+        return Path(self.system.data_dir).expanduser() / "audio"

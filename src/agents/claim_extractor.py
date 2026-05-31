@@ -2,12 +2,12 @@
 
 import json
 import re
+from pathlib import Path
 from src.agents.base import BaseAgent, AgentContext, AgentResult
 from src.models.types import Claim
+from src.prompts import load_prompt
 
 MAX_DOCUMENTS_PER_CYCLE = 25
-
-CLAIM_EXTRACTION_PROMPT = """Extract factual claims and key statements from this document.
 
 Rules:
 - Extract ALL factual claims, observations, and notable statements

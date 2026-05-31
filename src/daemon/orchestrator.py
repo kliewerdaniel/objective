@@ -13,7 +13,7 @@ from src.database.vector import VectorStore
 from src.database.metadata import MetadataStore
 from src.models.client import ModelRegistry
 from src.audio.piper import QwenTTS, AudioCache
-from src.audio.player import AudioQueue, ContinuousPlayer, AudioStitcher
+from src.audio.player import AudioQueue, ContinuousPlayer, AudioStitcher, StreamingAudioQueue, StreamingPlayer
 from src.audio.ambient import AmbientGenerator
 
 
@@ -118,9 +118,17 @@ class Orchestrator:
                     self.components["audio_queue"],
                     self.config.audio.sample_rate,
                 )
+                # Streaming components for chunk-level playback
+                streaming_queue = StreamingAudioQueue()
+                self.components["streaming_queue"] = streaming_queue
+                streaming_player = StreamingPlayer(
+                    streaming_queue,
+                    self.config.audio.sample_rate,
+                )
+                self.components["streaming_player"] = streaming_player
                 self.components["ambient"] = AmbientGenerator(self.config.audio.sample_rate)
-                self.log_activity("Audio pipeline initialized")
-                print("[objective03]   [OK] Audio pipeline")
+                self.log_activity("Audio pipeline initialized (streaming)")
+                print("[objective03]   [OK] Audio pipeline (streaming)")
             except Exception as e:
                 logger.warning("orchestrator.audio.failed", error=str(e))
                 print(f"[objective03]   [WARN] Audio pipeline: {e}")
@@ -216,6 +224,11 @@ class Orchestrator:
                 self.components["audio_player"].run()
             ))
             print("[objective03]   [OK] Audio player started")
+        if self.config.audio.enabled and "streaming_player" in self.components:
+            self._background_tasks.append(asyncio.create_task(
+                self.components["streaming_player"].run()
+            ))
+            print("[objective03]   [OK] Streaming player started")
 
         # Start dashboard
         if not self.headless:
@@ -260,7 +273,7 @@ class Orchestrator:
             task.cancel()
         await asyncio.gather(*self._background_tasks, return_exceptions=True)
 
-        for name in ("audio_player", "vector", "graph", "metadata"):
+        for name in ("audio_player", "streaming_player", "vector", "graph", "metadata"):
             comp = self.components.get(name)
             if comp and hasattr(comp, "close"):
                 try:
@@ -370,6 +383,7 @@ class Orchestrator:
         ctx.state["audio_cache"] = self.components.get("audio_cache")
         ctx.state["audio_queue"] = self.components.get("audio_queue")
         ctx.state["audio_stitcher"] = self.components.get("audio_stitcher")
+        ctx.state["streaming_queue"] = self.components.get("streaming_queue")
         ctx.state["audio_dir"] = Path(self.config.system.data_dir).expanduser() / "audio"
         return ctx
 

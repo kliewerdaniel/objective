@@ -78,8 +78,12 @@ class QwenTTS:
                 return False
 
             audio = np.concatenate(all_audio) if len(all_audio) > 1 else all_audio[0]
+            # Normalize and convert to int16 for afplay compatibility
+            if audio.dtype != np.int16:
+                audio = np.clip(audio, -1.0, 1.0)
+                audio = (audio * 32767).astype(np.int16)
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            sf.write(output_path, audio, self._sample_rate)
+            sf.write(output_path, audio, self._sample_rate, subtype='PCM_16')
             return True
 
     async def synthesize(self, text: str, output_path: str) -> bool:
