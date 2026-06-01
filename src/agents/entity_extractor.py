@@ -30,6 +30,8 @@ class EntityExtractor(BaseAgent):
         for doc in documents:
             raw = await self._extract(doc, model)
             for r in raw:
+                if not isinstance(r, dict):
+                    continue
                 entity = await self._resolve(r, context)
                 if entity:
                     all_entities.append(entity)
@@ -43,7 +45,10 @@ class EntityExtractor(BaseAgent):
         prompt = ENTITY_EXTRACTION_PROMPT.format(text=doc.body[:2048])
         response = await asyncio.to_thread(model.generate, prompt, temperature=0.0, max_tokens=1024, structured=True)
         try:
-            return json.loads(response.text)
+            data = json.loads(response.text)
+            if isinstance(data, list):
+                return [r for r in data if isinstance(r, dict)]
+            return []
         except json.JSONDecodeError:
             return []
 
