@@ -1,5 +1,6 @@
 """Entity extraction agent."""
 
+import asyncio
 import json
 from src.agents.base import BaseAgent, AgentContext, AgentResult
 from src.models.types import Entity, generate_uuid
@@ -40,7 +41,7 @@ class EntityExtractor(BaseAgent):
 
     async def _extract(self, doc, model) -> list[dict]:
         prompt = ENTITY_EXTRACTION_PROMPT.format(text=doc.body[:2048])
-        response = model.generate(prompt, temperature=0.0, max_tokens=1024, structured=True)
+        response = await asyncio.to_thread(model.generate, prompt, temperature=0.0, max_tokens=1024, structured=True)
         try:
             return json.loads(response.text)
         except json.JSONDecodeError:

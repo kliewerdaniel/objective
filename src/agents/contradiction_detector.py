@@ -1,5 +1,6 @@
 """Contradiction detection agent."""
 
+import asyncio
 import json
 from src.agents.base import BaseAgent, AgentContext, AgentResult
 from src.models.types import Contradiction, generate_uuid
@@ -58,7 +59,7 @@ class ContradictionDetector(BaseAgent):
             text_b=claim_b.text, topic_b=claim_b.topic, stance_b=claim_b.stance,
         )
         try:
-            response = model.generate(prompt, temperature=0.0, max_tokens=256, structured=True)
+            response = await asyncio.to_thread(model.generate, prompt, temperature=0.0, max_tokens=256, structured=True)
             result = json.loads(response.text)
             if result.get("type") in ("COMPATIBLE", "UNCERTAIN"):
                 return None

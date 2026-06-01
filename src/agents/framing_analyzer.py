@@ -1,5 +1,6 @@
 """Framing analyzer — detects framing bias across sources."""
 
+import asyncio
 from src.agents.base import BaseAgent, AgentContext, AgentResult
 
 
@@ -42,7 +43,7 @@ class FramingAnalyzer(BaseAgent):
             f"Claim: {claim.text}\nFraming:"
         )
         try:
-            resp = model.generate(prompt, max_tokens=16, temperature=0.1)
+            resp = await asyncio.to_thread(model.generate, prompt, max_tokens=16, temperature=0.1)
             for label in FRAME_LABELS:
                 if label in resp.text.lower():
                     return label

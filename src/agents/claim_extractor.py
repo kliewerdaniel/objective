@@ -1,5 +1,6 @@
 """Claim extraction agent."""
 
+import asyncio
 import json
 import re
 from pathlib import Path
@@ -51,7 +52,7 @@ class ClaimExtractor(BaseAgent):
 
         for doc in documents:
             try:
-                claims = self._extract(doc, model)
+                claims = await asyncio.to_thread(self._extract, doc, model)
                 all_claims.extend(claims)
                 stats["documents_processed"] += 1
                 stats["claims_extracted"] += len(claims)

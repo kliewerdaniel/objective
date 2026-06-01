@@ -1,5 +1,6 @@
 """Broadcast writer agent."""
 
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from src.agents.base import BaseAgent, AgentContext, AgentResult
@@ -45,7 +46,7 @@ Recent headlines:
 Previous broadcast:
 {prev if prev else 'None yet — this is the first broadcast.'}"""
 
-        response = model.generate(user_prompt, temperature=0.5, max_tokens=4096, system=system_prompt)
+        response = await asyncio.to_thread(model.generate, user_prompt, temperature=0.5, max_tokens=4096, system=system_prompt)
         script = self._parse(response.text)
 
         if not self.validate(AgentResult(success=True, data=script)):

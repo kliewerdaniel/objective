@@ -38,19 +38,33 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getStatus().then(setStatus).catch((e) => setError(e.message))
-    getDaemonStatus().then(setDaemon).catch(() => {})
-    getAssignedModels().then((r) => setAssignedModels(r.assigned)).catch(() => {})
+    let mounted = true
 
-    const iv = setInterval(() => {
-      getDaemonStatus().then(setDaemon).catch(() => {})
-    }, 10000)
+    async function fetchAll() {
+      try {
+        const s = await getStatus()
+        if (mounted) setStatus(s)
+      } catch (e) {
+        if (mounted) setError((e as Error).message)
+      }
+      try {
+        const d = await getDaemonStatus()
+        if (mounted) setDaemon(d)
+      } catch { /* retry next interval */ }
+      try {
+        const m = await getAssignedModels()
+        if (mounted) setAssignedModels(m.assigned)
+      } catch { /* retry next interval */ }
+    }
+
+    fetchAll()
+    const iv = setInterval(fetchAll, 10000)
 
     const unsub = subscribeEvents((event) => {
       setLogs((prev) => [{ timestamp: event.timestamp, type: event.type, data: event.data }, ...prev].slice(0, 30))
     })
 
-    return () => { clearInterval(iv); unsub() }
+    return () => { mounted = false; clearInterval(iv); unsub() }
   }, [])
 
   if (error) {

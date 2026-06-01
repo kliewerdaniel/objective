@@ -1,5 +1,6 @@
 """Narrative analysis agent."""
 
+import asyncio
 import json
 import numpy as np
 from src.agents.base import BaseAgent, AgentContext, AgentResult
@@ -38,7 +39,7 @@ class NarrativeAnalyzer(BaseAgent):
     async def _cluster(self, claims, model, context) -> list[Narrative]:
         model_emb = await context.models.get("embedding")
         texts = [c["c.text"] for c in claims]
-        embeddings = model_emb.create_embedding(texts)
+        embeddings = await asyncio.to_thread(model_emb.create_embedding, texts)
 
         clusters = []
         assigned = set()
@@ -72,7 +73,7 @@ class NarrativeAnalyzer(BaseAgent):
         prompt = "Generate a concise label for this narrative thread (5 words max):\n" + \
                  "\n".join(f"- {t}" for t in texts) + "\nLabel:"
         try:
-            response = model.generate(prompt, temperature=0.3, max_tokens=50)
+            response = await asyncio.to_thread(model.generate, prompt, temperature=0.3, max_tokens=50)
             return response.text.strip().strip('"')
         except Exception:
             return "Unnamed narrative"

@@ -1,5 +1,6 @@
 """RSS feed connector."""
 
+import asyncio
 import feedparser
 from datetime import datetime
 from src.ingestion.connector import SourceConnector
@@ -26,7 +27,7 @@ class RSSConnector(SourceConnector):
                 if etag_new:
                     self.config["_etag"] = etag_new
 
-                feed = feedparser.parse(text)
+                feed = await asyncio.to_thread(feedparser.parse, text)
                 docs = []
                 for entry in feed.entries[:self.config.get("limit", 50)]:
                     pub = entry.get("published_parsed")

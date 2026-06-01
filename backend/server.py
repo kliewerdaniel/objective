@@ -599,44 +599,29 @@ async def get_status():
 
 @app.get("/api/daemon")
 async def get_daemon_status():
-    """Check if the objective03 daemon process is running."""
-    import subprocess as _sp
+    """Report daemon status — if this endpoint responds, the backend IS running."""
+    import os
     config = _load_config()
-    running = False
-    pid = None
+    pid = str(os.getpid())
     uptime = None
     try:
-        result = _sp.run(["pgrep", "-f", "objective03.*run"], capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout.strip():
-            pids = result.stdout.strip().split("\n")
-            pid = pids[0]
-            running = True
-        else:
-            # Also check for the uvicorn backend process (Electron mode)
-            result = _sp.run(["pgrep", "-f", "uvicorn.*backend.server"], capture_output=True, text=True)
-            if result.returncode == 0 and result.stdout.strip():
-                pids = result.stdout.strip().split("\n")
-                pid = pids[0]
-                running = True
-        if running and pid:
-            # Get uptime
-            try:
-                stat_result = _sp.run(["ps", "-o", "etime=", "-p", pid], capture_output=True, text=True)
-                uptime = stat_result.stdout.strip() if stat_result.returncode == 0 else None
-            except Exception:
-                pass
+        # Get process uptime via ps
+        import subprocess as _sp
+        result = _sp.run(["ps", "-o", "etime=", "-p", pid], capture_output=True, text=True)
+        if result.returncode == 0:
+            uptime = result.stdout.strip()
     except Exception:
         pass
-    # Check launchd status on macOS
+    # Also check launchd status on macOS
     launchd_running = False
     try:
+        import subprocess as _sp
         result = _sp.run(["launchctl", "list", "com.danielkliewer.objective03"], capture_output=True, text=True)
         launchd_running = "PID" in result.stdout and "0" not in result.stdout.split("PID")[1].split("\n")[0].strip()
     except Exception:
         pass
-
     return {
-        "daemon_running": running or launchd_running,
+        "daemon_running": True,
         "pid": pid,
         "uptime": uptime,
         "launchd_managed": launchd_running,
