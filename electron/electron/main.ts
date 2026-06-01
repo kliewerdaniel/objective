@@ -30,7 +30,8 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.mjs'),
     },
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 12, y: 12 },
     show: false,
   })
 

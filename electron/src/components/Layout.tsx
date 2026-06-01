@@ -14,6 +14,16 @@ export default function Layout() {
     <div className="flex h-screen">
       {/* Sidebar */}
       <aside className="w-48 border-r border-border bg-card flex flex-col">
+        {/* macOS traffic light spacer + drag region */}
+        <div
+          className="w-full shrink-0 flex items-center"
+          style={{
+            height: 36,
+            paddingLeft: 68,
+            WebkitAppRegion: 'drag',
+          } as React.CSSProperties}
+        >
+        </div>
         <div className="px-4 py-3 border-b border-border">
           <h1 className="text-sm font-bold tracking-tight">objective03</h1>
           <p className="text-[10px] text-muted-foreground mt-0.5">news broadcast daemon</p>

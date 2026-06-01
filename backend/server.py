@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -735,6 +735,19 @@ async def select_voice(req: VoiceSelectRequest):
     _save_config(config)
     await event_manager.emit("voice_changed", {"voice": req.voice})
     return {"ok": True, "voice": req.voice}
+
+
+@app.post("/api/voices/upload")
+async def upload_voice(file: bytes = File(...), filename: str = Form(...)):
+    import re as _re
+    safe = _re.sub(r'[^\w.\-]', '_', filename)
+    if not safe or safe.startswith('.'):
+        safe = f"voice_{int(time.time())}.wav"
+    CUSTOM_VOICES_DIR.mkdir(parents=True, exist_ok=True)
+    dest = CUSTOM_VOICES_DIR / safe
+    dest.write_bytes(file)
+    await event_manager.emit("voice_uploaded", {"name": safe})
+    return {"ok": True, "name": safe, "path": str(dest)}
 
 
 # ---------------------------------------------------------------------------

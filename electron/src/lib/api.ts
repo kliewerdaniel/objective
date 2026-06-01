@@ -88,6 +88,17 @@ export const updateConfig = (content: string) =>
 export const getVoices = () => request<{ voices: Voice[]; active: string }>('/api/voices')
 export const setVoice = (voice: string) =>
   request<{ ok: boolean }>('/api/voice', { method: 'PUT', body: JSON.stringify({ voice }) })
+export const uploadVoice = async (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('filename', file.name)
+  const res = await fetch(`${API_BASE}/api/voices/upload`, { method: 'POST', body: form })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail || `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{ ok: boolean; name: string; path: string }>
+}
 
 // Models
 export const getModels = () => request<{ models: Model[]; folder: string }>('/api/models')
