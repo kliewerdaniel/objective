@@ -38,7 +38,7 @@ class NarrativeAnalyzer(BaseAgent):
 
     async def _cluster(self, claims, model, context) -> list[Narrative]:
         model_emb = await context.models.get("embedding")
-        texts = [c["text"] for c in claims]
+        texts = [c["n.text"] for c in claims]
         embeddings = await asyncio.to_thread(model_emb.create_embedding, texts)
 
         clusters = []

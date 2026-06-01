@@ -27,7 +27,12 @@ class YouTubeConnector(SourceConnector):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(channel_url, download=False)
 
-        info = await asyncio.to_thread(_extract)
+        try:
+            info = await asyncio.wait_for(asyncio.to_thread(_extract), timeout=30)
+        except asyncio.TimeoutError:
+            return []
+        except Exception:
+            return []
         docs = []
         entries = info.get("entries", [])[:self.config.get("limit", 10)]
         for entry in entries:

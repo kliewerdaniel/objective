@@ -64,9 +64,12 @@ class IngestionCoordinator(BaseAgent):
             stats["sources_polled"] += 1
             return new_docs
 
-        results = await asyncio.gather(
-            *[_poll_one(p) for p in pollers],
-            return_exceptions=True,
+        results = await asyncio.wait_for(
+            asyncio.gather(
+                *[_poll_one(p) for p in pollers],
+                return_exceptions=True,
+            ),
+            timeout=self.timeout_seconds,
         )
         for r in results:
             if isinstance(r, Exception):
