@@ -213,13 +213,77 @@ async def _run_broadcast_pipeline():
             metadata=metadata,
         )
 
-        # --- Step 1: Run broadcast writer ---
-        _set_stage("broadcast", generating=True)
-        _pipeline_state["script_preview"] = "Loading LLM model and generating script..."
+        # --- Step 1: Run full analysis pipeline ---
+        _set_stage("ingestion", generating=True)
+        _pipeline_state["script_preview"] = "Fetching news and analyzing..."
         await emit_pipeline_state()
         t_start = time.time()
-        print("[backend] Broadcast pipeline started", flush=True)
+        print("[backend] Analysis pipeline started", flush=True)
 
+        # Import all analysis agents
+        from src.agents.ingestion_coordinator import IngestionCoordinator
+        from src.agents.claim_extractor import ClaimExtractor
+        from src.agents.entity_extractor import EntityExtractor
+        from src.agents.event_clustering import EventClusteringEngine
+        from src.agents.contradiction_detector import ContradictionDetector
+        from src.agents.narrative_analyzer import NarrativeAnalyzer
+        from src.agents.framing_analyzer import FramingAnalyzer
+        from src.agents.source_reliability import SourceReliabilityEvaluator
+        from src.agents.graph_updater import GraphUpdater
+
+        # Step 1a: Ingest from sources
+        print("[backend] Running ingestion...", flush=True)
+        ingestion = IngestionCoordinator()
+        result = await ingestion.run(ctx)
+        print(f"[backend] Ingestion: {result.metrics.get('documents_found', 0)} new documents", flush=True)
+        _set_stage("claims", generating=True)
+        await emit_pipeline_state()
+
+        # Step 1b: Extract claims
+        print("[backend] Extracting claims...", flush=True)
+        extractor = ClaimExtractor()
+        result = await extractor.run(ctx)
+        print(f"[backend] Claims: {result.metrics.get('claims_extracted', 0)} extracted", flush=True)
+        _set_stage("entities", generating=True)
+        await emit_pipeline_state()
+
+        # Step 1c: Extract entities
+        print("[backend] Extracting entities...", flush=True)
+        entity_ext = EntityExtractor()
+        result = await entity_ext.run(ctx)
+        print(f"[backend] Entities extracted", flush=True)
+        _set_stage("clustering", generating=True)
+        await emit_pipeline_state()
+
+        # Step 1d: Cluster into events
+        print("[backend] Clustering events...", flush=True)
+        clustering = EventClusteringEngine()
+        result = await clustering.run(ctx)
+        print(f"[backend] Events clustered", flush=True)
+        _set_stage("contradictions", generating=True)
+        await emit_pipeline_state()
+
+        # Step 1e: Detect contradictions
+        print("[backend] Detecting contradictions...", flush=True)
+        contradiction = ContradictionDetector()
+        result = await contradiction.run(ctx)
+        print(f"[backend] Contradictions detected", flush=True)
+        _set_stage("narratives", generating=True)
+        await emit_pipeline_state()
+
+        # Step 1f: Analyze narratives
+        print("[backend] Analyzing narratives...", flush=True)
+        narrative = NarrativeAnalyzer()
+        result = await narrative.run(ctx)
+        print(f"[backend] Narratives analyzed", flush=True)
+
+        # Step 1g: Update graph
+        print("[backend] Updating graph...", flush=True)
+        graph_updater = GraphUpdater()
+        result = await graph_updater.run(ctx)
+        print(f"[backend] Graph updated", flush=True)
+
+        # --- Step 2: Run broadcast writer (continued) ---
         broadcast_agent = BroadcastWriter()
         t0 = time.time()
         print("[backend] Running broadcast writer (loading model + generating script)...", flush=True)
@@ -246,7 +310,7 @@ async def _run_broadcast_pipeline():
         _pipeline_state["broadcast_id"] = script.id
         await emit_pipeline_state()
 
-        # --- Step 2: Run TTS with streaming chunks ---
+        # --- Step 3: Run TTS with streaming chunks ---
         _set_stage("tts", generating=True, segments_total=0, segments_done=0)
         await emit_pipeline_state()
 
@@ -338,7 +402,7 @@ async def _run_broadcast_pipeline():
             await emit_pipeline_state()
             return
 
-        # --- Step 3: Save stitched broadcast for sidebar + replay ---
+        # --- Step 4: Save stitched broadcast for sidebar + replay ---
         _set_stage("stitching", generating=True)
         await emit_pipeline_state()
 
