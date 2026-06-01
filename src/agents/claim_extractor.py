@@ -9,6 +9,8 @@ from src.prompts import load_prompt
 
 MAX_DOCUMENTS_PER_CYCLE = 25
 
+CLAIM_EXTRACTION_PROMPT = """You are a claim extraction agent. Extract atomic factual claims from news documents.
+
 Rules:
 - Extract ALL factual claims, observations, and notable statements
 - Short summaries still contain claims — treat the full body as claim-worthy

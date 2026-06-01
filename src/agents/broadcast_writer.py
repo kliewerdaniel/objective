@@ -51,7 +51,8 @@ Previous broadcast:
         if not self.validate(AgentResult(success=True, data=script)):
             script = self._fallback(state)
 
-        context.graph.create_node("Broadcast", script.to_dict())
+        if context.graph:
+            context.graph.create_node("Broadcast", script.to_dict())
         context.state["script"] = script
         return AgentResult(success=True, data=script, metrics={
             "word_count": len(script.full_text.split()),
