@@ -11,7 +11,7 @@ from src.config import AudioConfig
 class QwenTTS:
     """TTS engine using Qwen3-TTS with voice cloning via reference audio."""
 
-    MODEL_ID = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-4bit"
+    MODEL_ID = "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit"
     DEFAULT_VOICE = "chris"
 
     def __init__(self, config: AudioConfig):
@@ -70,6 +70,8 @@ class QwenTTS:
                 ref_text=self._ref_text,
                 speed=speed,
                 verbose=False,
+                max_tokens=2048,
+                temperature=0.5,
             ):
                 all_audio.append(np.array(result.audio))
                 self._sample_rate = getattr(result, 'sample_rate', self._sample_rate)
@@ -78,6 +80,10 @@ class QwenTTS:
                 return False
 
             audio = np.concatenate(all_audio) if len(all_audio) > 1 else all_audio[0]
+            # Add small silence padding at start/end to reduce boundary artifacts
+            pad_samples = int(self._sample_rate * 0.1)  # 100ms
+            silence = np.zeros(pad_samples, dtype=audio.dtype)
+            audio = np.concatenate([silence, audio, silence])
             # Normalize and convert to int16 for afplay compatibility
             if audio.dtype != np.int16:
                 audio = np.clip(audio, -1.0, 1.0)

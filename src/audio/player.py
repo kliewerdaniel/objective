@@ -221,19 +221,26 @@ class StreamingPlayer:
                         stderr=subprocess.DEVNULL,
                     )
                     await proc.wait()
+                    # Small delay between chunks to prevent audio glitches
+                    await asyncio.sleep(0.05)
                 except Exception as e:
                     print(f"[streamingPlayer] Error playing chunk: {e}", flush=True)
 
     async def _wait_for_file(self, path: str, timeout: float = 5.0) -> bool:
-        """Wait for file to exist and have stable size (fully written)."""
+        """Wait for file to exist and be fully written (size stable for multiple checks)."""
         deadline = time.monotonic() + timeout
         last_size = -1
+        stable_count = 0
         while time.monotonic() < deadline:
             try:
                 size = os.path.getsize(path)
                 if size > 0 and size == last_size:
-                    # Size stable — file is fully written
-                    return True
+                    stable_count += 1
+                    # Require 3 consecutive stable readings (150ms) to confirm write is complete
+                    if stable_count >= 3:
+                        return True
+                else:
+                    stable_count = 0
                 last_size = size
             except OSError:
                 pass

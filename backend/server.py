@@ -255,21 +255,23 @@ async def _run_broadcast_pipeline():
 
         processor = TTSProcessor()
 
-        # Split script into small chunks for cleaner TTS output
+        # Split script into small chunks at sentence boundaries for cleaner TTS
         all_chunks = []
         for seg in script.segments:
-            paragraphs = re.split(r'\n\s*\n', seg.text.strip()) if seg.text.strip() else []
-            if not paragraphs:
-                paragraphs = [seg.text] if seg.text else []
+            text = seg.text.strip()
+            if not text:
+                continue
+            # Split into sentences
+            sentences = re.split(r'(?<=[.!?])\s+', text)
             current = ""
-            for para in paragraphs:
+            for sent in sentences:
                 words = current.split()
-                para_words = para.split()
-                if len(words) + len(para_words) > 40 and current:
+                sent_words = sent.split()
+                if len(words) + len(sent_words) > 50 and current:
                     all_chunks.append(current.strip())
-                    current = para
+                    current = sent
                 else:
-                    current = (current + "\n\n" + para).strip() if current else para
+                    current = (current + " " + sent).strip() if current else sent
             if current.strip():
                 all_chunks.append(current.strip())
 
@@ -545,6 +547,14 @@ async def get_daemon_status():
             pids = result.stdout.strip().split("\n")
             pid = pids[0]
             running = True
+        else:
+            # Also check for the uvicorn backend process (Electron mode)
+            result = _sp.run(["pgrep", "-f", "uvicorn.*backend.server"], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split("\n")
+                pid = pids[0]
+                running = True
+        if running and pid:
             # Get uptime
             try:
                 stat_result = _sp.run(["ps", "-o", "etime=", "-p", pid], capture_output=True, text=True)
