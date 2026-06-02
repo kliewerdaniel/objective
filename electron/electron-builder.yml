@@ -1,0 +1,49 @@
+appId: app.objective03
+productName: objective03
+copyright: "Copyright © 2026 objective03 Contributors"
+
+directories:
+  output: release
+  buildResources: build-resources
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - node_modules/**/*
+  - "!**/.gitignore"
+  - "!**/.DS_Store"
+  - "!**/node_modules/**/{test,__tests__,tests,powered-test,example,examples}"
+
+extraResources:
+  - from: ../src
+    to: backend/src
+  - from: ../backend
+    to: backend/backend
+  - from: ../prompts
+    to: backend/prompts
+  - from: ../config.yaml
+    to: backend/config.yaml
+
+mac:
+  category: public.app-category.news
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  icon: build-resources/icon.icns
+
+dmg:
+  background: build-resources/dmg-background.png
+  icon: build-resources/icon.icns
+  iconSize: 128
+  window:
+    width: 660
+    height: 400
+  contents:
+    - x: 180
+      y: 200
+      type: file
+    - x: 480
+      y: 200
+      type: link
+      path: /Applications

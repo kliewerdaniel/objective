@@ -12,7 +12,8 @@ logger = structlog.get_logger()
 
 
 async def main(headless: bool = False):
-    config_path = Path.home() / ".objective03" / "config.yaml"
+    from src.config import DATA_DIR
+    config_path = DATA_DIR / "config.yaml"
     config = Config.load(str(config_path) if config_path.exists() else None)
     config.ensure_dirs()
 

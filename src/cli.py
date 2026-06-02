@@ -47,11 +47,12 @@ def cmd_check(args):
     checks.append(("ffmpeg", shutil.which("ffmpeg") is not None))
 
     # Check config
-    config_path = Path.home() / ".objective03" / "config.yaml"
+    from src.config import DATA_DIR
+    config_path = DATA_DIR / "config.yaml"
     checks.append(("config.yaml", config_path.exists()))
 
     # Check models
-    models_dir = Path.home() / ".objective03" / "models"
+    models_dir = DATA_DIR / "models"
     ggufs = list(models_dir.glob("*.gguf")) if models_dir.exists() else []
     checks.append(("GGUF models", len(ggufs) > 0, f"{len(ggufs)} found"))
 

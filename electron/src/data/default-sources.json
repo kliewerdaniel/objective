@@ -1,0 +1,43 @@
+{
+  "categories": [
+    {
+      "name": "World News",
+      "sources": [
+        { "name": "BBC World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "type": "rss" },
+        { "name": "NPR World", "url": "https://feeds.npr.org/1004/rss.xml", "type": "rss" },
+        { "name": "Al Jazeera English", "url": "https://www.aljazeera.com/xml/rss/all.xml", "type": "rss" },
+        { "name": "Reuters World", "url": "https://feeds.reuters.com/reuters/worldNews", "type": "rss" }
+      ]
+    },
+    {
+      "name": "US News & Politics",
+      "sources": [
+        { "name": "NYT US", "url": "https://rss.nytimes.com/services/xml/rss/nyt/US.xml", "type": "rss" },
+        { "name": "NPR Politics", "url": "https://feeds.npr.org/1014/rss.xml", "type": "rss" },
+        { "name": "Washington Post Politics", "url": "https://feeds.washingtonpost.com/rss/politics", "type": "rss" }
+      ]
+    },
+    {
+      "name": "Science & Technology",
+      "sources": [
+        { "name": "BBC Science", "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "type": "rss" },
+        { "name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index", "type": "rss" },
+        { "name": "MIT Technology Review", "url": "https://www.technologyreview.com/feed/", "type": "rss" }
+      ]
+    },
+    {
+      "name": "Economics & Finance",
+      "sources": [
+        { "name": "FT World", "url": "https://www.ft.com/rss/home/uk", "type": "rss" },
+        { "name": "The Economist", "url": "https://www.economist.com/rss", "type": "rss" }
+      ]
+    },
+    {
+      "name": "Community",
+      "sources": [
+        { "name": "r/worldnews", "url": "https://www.reddit.com/r/worldnews/.json", "type": "reddit", "subreddit": "worldnews" },
+        { "name": "r/geopolitics", "url": "https://www.reddit.com/r/geopolitics/.json", "type": "reddit", "subreddit": "geopolitics" }
+      ]
+    }
+  ]
+}

@@ -26,11 +26,12 @@ class QwenTTS:
         # Resolve voice reference audio
         voice_name = getattr(config.tts, "voice", self.DEFAULT_VOICE)
         voices_dir = Path(config.tts.model).parent if config.tts.model else Path("custom_voices")
+        from src.config import DATA_DIR
         # Try multiple locations
         for candidate in [
             voices_dir / f"{voice_name}.wav",
             Path("custom_voices") / f"{voice_name}.wav",
-            Path.home() / ".objective03" / "custom_voices" / f"{voice_name}.wav",
+            DATA_DIR / "custom_voices" / f"{voice_name}.wav",
             Path(__file__).parent.parent.parent / "custom_voices" / f"{voice_name}.wav",
         ]:
             if candidate.exists():

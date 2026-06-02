@@ -14,6 +14,9 @@ build/
 # Linting / tooling
 .ruff_cache/
 
+# Logs
+*.log
+
 # ML Model files
 models/
 *.gguf
@@ -31,6 +34,7 @@ custom_voice/
 electron/node_modules/
 electron/dist/
 electron/dist-electron/
+electron/release/
 
 # macOS
 .DS_Store

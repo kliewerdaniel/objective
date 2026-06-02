@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "tiers": [
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "description": "One model handles all tasks. Slower. Lower quality. Works on 8 GB RAM Macs.",
+      "total_size_gb": 4.2,
+      "min_ram_gb": 8,
+      "quality_stars": 2,
+      "estimated_broadcast_minutes": 8,
+      "models": [
+        {
+          "slot": ["extraction", "entity", "reasoning", "broadcast", "contradiction", "classification"],
+          "name": "Qwen2.5-7B-Instruct Q4_K_M",
+          "filename": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "hf_repo": "Qwen/Qwen2.5-7B-Instruct-GGUF",
+          "hf_file": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "size_bytes": 4430697472,
+          "context": 4096,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["embedding"],
+          "name": "BGE-Small-EN-v1.5 Q4_K_M",
+          "filename": "bge-small-en-v1.5-q4_k_m.gguf",
+          "hf_repo": "Compadre/bge-small-en-v1.5-gguf",
+          "hf_file": "bge-small-en-v1.5-q4_k_m.gguf",
+          "size_bytes": 32768000,
+          "context": 512,
+          "gpu_layers": 0
+        }
+      ]
+    },
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "description": "Separate extraction and broadcast models. Good quality on 16 GB RAM Macs.",
+      "total_size_gb": 11.8,
+      "min_ram_gb": 16,
+      "quality_stars": 4,
+      "estimated_broadcast_minutes": 5,
+      "recommended": true,
+      "models": [
+        {
+          "slot": ["extraction", "entity", "classification"],
+          "name": "Qwen2.5-7B-Instruct Q4_K_M",
+          "filename": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "hf_repo": "Qwen/Qwen2.5-7B-Instruct-GGUF",
+          "hf_file": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "size_bytes": 4430697472,
+          "context": 4096,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["reasoning", "broadcast"],
+          "name": "Llama-3.1-8B-Instruct Q4_K_M",
+          "filename": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+          "hf_repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+          "hf_file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+          "size_bytes": 4921378816,
+          "context": 8192,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["contradiction"],
+          "name": "Llama-3.2-3B-Instruct Q4_K_M",
+          "filename": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+          "hf_repo": "bartowski/Llama-3.2-3B-Instruct-GGUF",
+          "hf_file": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+          "size_bytes": 2147483648,
+          "context": 4096,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["embedding"],
+          "name": "BGE-Small-EN-v1.5 Q4_K_M",
+          "filename": "bge-small-en-v1.5-q4_k_m.gguf",
+          "hf_repo": "Compadre/bge-small-en-v1.5-gguf",
+          "hf_file": "bge-small-en-v1.5-q4_k_m.gguf",
+          "size_bytes": 32768000,
+          "context": 512,
+          "gpu_layers": 0
+        }
+      ]
+    },
+    {
+      "id": "full",
+      "name": "Full Suite",
+      "description": "All seven task-specific models. Best quality. Requires 32 GB+ RAM.",
+      "total_size_gb": 24.6,
+      "min_ram_gb": 32,
+      "quality_stars": 5,
+      "estimated_broadcast_minutes": 3,
+      "models": [
+        {
+          "slot": ["extraction"],
+          "name": "Qwen2.5-7B-Instruct Q4_K_M",
+          "filename": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "hf_repo": "Qwen/Qwen2.5-7B-Instruct-GGUF",
+          "hf_file": "qwen2.5-7b-instruct-q4_k_m.gguf",
+          "size_bytes": 4430697472,
+          "context": 4096,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["entity", "classification"],
+          "name": "Qwen2.5-3B-Instruct Q4_K_M",
+          "filename": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "hf_repo": "Qwen/Qwen2.5-3B-Instruct-GGUF",
+          "hf_file": "qwen2.5-3b-instruct-q4_k_m.gguf",
+          "size_bytes": 2147483648,
+          "context": 2048,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["reasoning"],
+          "name": "Llama-3.1-8B-Instruct Q4_K_M",
+          "filename": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+          "hf_repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+          "hf_file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+          "size_bytes": 4921378816,
+          "context": 8192,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["broadcast"],
+          "name": "Qwen2.5-14B-Instruct Q4_K_M",
+          "filename": "qwen2.5-14b-instruct-q4_k_m.gguf",
+          "hf_repo": "Qwen/Qwen2.5-14B-Instruct-GGUF",
+          "hf_file": "qwen2.5-14b-instruct-q4_k_m.gguf",
+          "size_bytes": 9663676416,
+          "context": 8192,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["contradiction"],
+          "name": "Llama-3.2-3B-Instruct Q4_K_M",
+          "filename": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+          "hf_repo": "bartowski/Llama-3.2-3B-Instruct-GGUF",
+          "hf_file": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+          "size_bytes": 2147483648,
+          "context": 4096,
+          "gpu_layers": 32
+        },
+        {
+          "slot": ["embedding"],
+          "name": "BGE-Small-EN-v1.5 Q4_K_M",
+          "filename": "bge-small-en-v1.5-q4_k_m.gguf",
+          "hf_repo": "Compadre/bge-small-en-v1.5-gguf",
+          "hf_file": "bge-small-en-v1.5-q4_k_m.gguf",
+          "size_bytes": 32768000,
+          "context": 512,
+          "gpu_layers": 0
+        }
+      ]
+    }
+  ]
+}

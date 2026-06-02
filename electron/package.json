@@ -9,7 +9,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "electron:dev": "vite",
-    "electron:build": "vite build && electron-builder"
+    "electron:build": "vite build && electron-builder --config electron-builder.yml",
+    "electron:build:mac": "vite build && electron-builder --mac --config electron-builder.yml",
+    "dist": "vite build && electron-builder --config electron-builder.yml"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -29,6 +31,7 @@
     "recharts": "^2.12.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.3.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.2.1",

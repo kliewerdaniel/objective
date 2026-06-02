@@ -5,7 +5,7 @@ description = "A synthetic epistemology engine masquerading as an infinite radio
 requires-python = ">=3.11"
 dependencies = [
     "kuzu>=0.7",
-    "qdrant-client>=1.9",
+    "hnswlib>=0.7",
     "llama-cpp-python>=0.2",
     "textual>=0.52",
     "rich>=13.7",
@@ -26,6 +26,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+tts = [
+    "mlx-audio>=0.4.2",
+]
+download = [
+    "huggingface-hub>=0.23",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

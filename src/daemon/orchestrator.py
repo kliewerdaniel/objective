@@ -85,20 +85,18 @@ class Orchestrator:
         # Vector store
         try:
             self.components["vector"] = VectorStore(
-                host=self.config.vector.host,
-                port=self.config.vector.port,
-                collection=self.config.vector.collection,
                 vector_size=self.config.vector.vector_size,
+                persist_path=str(self.config.vector_persist_path),
             )
-            self.log_activity("Vector store (Qdrant) initialized")
-            print("[objective03]   [OK] Vector store (Qdrant)")
+            self.log_activity("Vector store (hnswlib) initialized")
+            print("[objective03]   [OK] Vector store (hnswlib)")
         except Exception as e:
             logger.warning("orchestrator.vector.failed", error=str(e))
             print(f"[objective03]   [WARN] Vector store unavailable: {e}")
 
         # Model registry
         try:
-            self.components["model_registry"] = ModelRegistry(self.config.models)
+            self.components["model_registry"] = ModelRegistry(self.config)
             self.log_activity("Model registry initialized")
             print("[objective03]   [OK] Model registry")
         except Exception as e:

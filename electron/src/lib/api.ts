@@ -1,4 +1,25 @@
-const API_BASE = 'http://127.0.0.1:8510'
+let API_BASE = 'http://127.0.0.1:8510'
+
+async function initApiBase() {
+  if (typeof window !== 'undefined' && window.electronAPI?.getBackendPort) {
+    try {
+      const port = await window.electronAPI.getBackendPort()
+      if (port) {
+        API_BASE = `http://127.0.0.1:${port}`
+        window.__BACKEND_PORT__ = port
+      }
+    } catch {
+      // Fall back to default
+    }
+  }
+}
+
+// Initialize on load
+initApiBase()
+
+export function getApiBase(): string {
+  return API_BASE
+}
 
 export interface Voice {
   name: string
@@ -157,3 +178,52 @@ export function subscribeEvents(onEvent: (event: { type: string; data: Record<st
   }
   return () => source.close()
 }
+
+// Dashboard
+export interface DashboardStats {
+  events: number
+  claims: number
+  contradictions: number
+  narratives: number
+  documents: number
+  sources: number
+  source_reliability: Record<string, number>
+}
+
+export interface DashboardEvent {
+  id: string
+  title: string
+  description: string
+  importance: number
+  status: string
+  start_time: string
+  claim_count: number
+  contradiction_count: number
+}
+
+export const getDashboardStats = () => request<DashboardStats>('/api/dashboard/stats')
+export const getDashboardEvents = (limit: number = 20) =>
+  request<{ events: DashboardEvent[] }>(`/api/dashboard/events?limit=${limit}`)
+
+// Sources
+export interface SourceConfig {
+  name: string
+  url: string
+  interval?: number
+  timeout?: number
+  enabled?: boolean
+  subreddit?: string
+  channel_id?: string
+}
+
+export const getSources = () => request<{ rss: SourceConfig[]; reddit: SourceConfig[]; youtube: SourceConfig[] }>('/api/sources')
+export const addSource = (source: { type: string; name: string; url: string; subreddit?: string; channel_id?: string }) =>
+  request<{ ok: boolean }>('/api/sources', { method: 'POST', body: JSON.stringify(source) })
+export const deleteSource = (type: string, name: string) =>
+  request<{ ok: boolean }>('/api/sources', { method: 'DELETE', body: JSON.stringify({ type, name }) })
+export const toggleSource = (type: string, name: string) =>
+  request<{ ok: boolean }>(`/api/sources/${type}/${name}/toggle`, { method: 'PUT' })
+export const validateSource = (url: string) =>
+  request<{ valid: boolean; title?: string; entries?: { title: string; published: string }[]; error?: string }>(
+    `/api/sources/validate?url=${encodeURIComponent(url)}`
+  )

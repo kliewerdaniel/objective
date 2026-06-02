@@ -3,6 +3,7 @@
 import os
 import sys
 import re
+import json
 import yaml
 import asyncio
 import subprocess
@@ -27,8 +28,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 PROMPTS_DIR = PROJECT_ROOT / "prompts"
 CUSTOM_VOICES_DIR = PROJECT_ROOT / "custom_voices"
 MODELS_DIR = PROJECT_ROOT / "models"
-AUDIO_DIR = Path.home() / ".objective03" / "audio"
-CONFIG_PATH = Path(os.environ.get("OBJECTIVE03_CONFIG", Path.home() / ".objective03" / "config.yaml"))
+
+# Data directory: use env var, else platform-appropriate default
+import sys as _sys
+if _sys.platform == "darwin":
+    _DEFAULT_DATA_DIR = Path.home() / "Library" / "Application Support" / "objective03"
+else:
+    _DEFAULT_DATA_DIR = Path.home() / ".objective03"
+DATA_DIR = Path(os.environ.get("OBJECTIVE03_DATA_DIR", str(_DEFAULT_DATA_DIR)))
+AUDIO_DIR = DATA_DIR / "audio"
+CONFIG_PATH = Path(os.environ.get("OBJECTIVE03_CONFIG", str(DATA_DIR / "config.yaml")))
 if not CONFIG_PATH.exists():
     CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 
@@ -143,8 +152,8 @@ async def _run_broadcast_pipeline():
 
         try:
             vector = VectorStore(
-                host=config.vector.host, port=config.vector.port,
-                collection=config.vector.collection, vector_size=config.vector.vector_size,
+                vector_size=config.vector.vector_size,
+                persist_path=str(config.vector_persist_path),
             )
             print("[backend] Vector store ready", flush=True)
         except Exception as e:
@@ -157,7 +166,7 @@ async def _run_broadcast_pipeline():
             print(f"[backend] Metadata unavailable: {e}", flush=True)
 
         try:
-            models = ModelRegistry(config.models)
+            models = ModelRegistry(config)
             print("[backend] Model registry ready", flush=True)
         except Exception as e:
             print(f"[backend] Models unavailable: {e}", flush=True)
@@ -406,6 +415,13 @@ async def _run_broadcast_pipeline():
         _set_stage("stitching", generating=True)
         await emit_pipeline_state()
 
+        if not segment_paths:
+            _pipeline_state["failed_stage"] = "tts"
+            _pipeline_state["generation_error"] = "TTS produced no audio — check voice/model configuration"
+            _pipeline_state["generating"] = False
+            await emit_pipeline_state()
+            return
+
         output_path = str(config.audio_dir / "queue" / f"bcast_{generate_uuid()[:8]}.wav")
         try:
             if len(segment_paths) == 1:
@@ -428,16 +444,19 @@ async def _run_broadcast_pipeline():
                 pass
 
         _set_stage("ready", generating=False, generation_error=None)
-        _pipeline_state["now_playing"] = {
-            "broadcast_id": broadcast_id,
-            "chunks": len(all_chunks),
-            "streaming": True,
-        }
         if output_path:
-            _pipeline_state["now_playing"]["path"] = output_path
-            _pipeline_state["now_playing"]["filename"] = Path(output_path).name
-            _pipeline_state["now_playing"]["duration"] = duration
-        _pipeline_state["playback_duration"] = duration
+            _pipeline_state["now_playing"] = {
+                "broadcast_id": broadcast_id,
+                "chunks": len(all_chunks),
+                "streaming": True,
+                "path": output_path,
+                "filename": Path(output_path).name,
+                "duration": duration,
+            }
+            _pipeline_state["playback_duration"] = duration
+        else:
+            _pipeline_state["generation_error"] = "Broadcast generated but audio could not be stitched"
+            await emit_pipeline_state()
 
         total_elapsed = time.time() - t_start
         print(f"[backend] Broadcast pipeline complete in {total_elapsed:.1f}s ({len(all_chunks)} chunks, saved)", flush=True)
@@ -704,7 +723,7 @@ async def update_config(req: ConfigUpdateRequest):
 @app.get("/api/voices")
 async def list_voices():
     voices = []
-    search_dirs = [CUSTOM_VOICES_DIR, Path.home() / ".objective03" / "custom_voices"]
+    search_dirs = [CUSTOM_VOICES_DIR, DATA_DIR / "custom_voices"]
     for d in search_dirs:
         if d.exists():
             for f in sorted(d.iterdir()):
@@ -1036,3 +1055,309 @@ async def clear_broadcasts():
             f.unlink(missing_ok=True)
             deleted += 1
     return {"ok": True, "deleted": deleted}
+
+
+# ---------------------------------------------------------------------------
+# Wizard
+# ---------------------------------------------------------------------------
+class WizardCompleteRequest(BaseModel):
+    storage_path: str
+    models_path: str
+    tier: str
+    voice: str
+    sources: list[str]
+    custom_rss_urls: list[str] = []
+    use_existing_models: bool = False
+
+
+@app.get("/api/wizard/status")
+async def wizard_status():
+    """Check if setup has been completed."""
+    setup_file = DATA_DIR / "setup-complete.json"
+    return {"setup_complete": setup_file.exists()}
+
+
+@app.post("/api/wizard/complete")
+async def wizard_complete(req: WizardCompleteRequest):
+    """Write config and mark setup as complete."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Build config from wizard choices
+    config = {
+        "system": {
+            "name": "objective03",
+            "data_dir": req.storage_path,
+            "models_dir": req.models_path,
+            "log_level": "INFO",
+        },
+        "databases": {
+            "path": str(DATA_DIR / "graph.db"),
+            "max_threads": 4,
+        },
+        "vector": {
+            "vector_size": 384,
+        },
+        "metadata": {
+            "path": str(DATA_DIR / "metadata.db"),
+        },
+        "audio": {
+            "tts": {
+                "engine": "qwen",
+                "voice": req.voice,
+                "speed": 1.0,
+                "length_scale": 1.0,
+                "sentence_silence": 0.5,
+            },
+            "sample_rate": 24000,
+            "channels": 1,
+            "device": "default",
+            "enabled": True,
+        },
+        "scheduler": {
+            "ingestion_interval": 300,
+            "analysis_interval": 1800,
+            "broadcast_interval": 900,
+            "consolidation_interval": 86400,
+            "health_check_interval": 60,
+        },
+        "sources": {
+            "rss": [],
+            "reddit": [],
+        },
+    }
+
+    # Map sources to config format
+    for url in req.sources:
+        config["sources"]["rss"].append({
+            "url": url,
+            "name": url.split("//")[-1].split("/")[0],
+            "interval": 600,
+            "timeout": 30,
+        })
+
+    # Auto-detect models when using existing directory
+    if req.use_existing_models:
+        models_dir = Path(req.models_path)
+        if models_dir.is_dir():
+            gguf_files = sorted(models_dir.rglob("*.gguf"))
+            if gguf_files:
+                # Task definitions with keywords and defaults
+                task_defs = [
+                    ("extraction", ["7b", "7b", "qwen"], 4096, 32, "qwen2.5-7b"),
+                    ("entity", ["3b", "3b", "qwen", "entity"], 2048, 32, "qwen2.5-3b"),
+                    ("reasoning", ["8b", "8b", "llama", "reason"], 8192, 32, "llama-3.1-8b"),
+                    ("broadcast", ["14b", "14b", "qwen", "broadcast"], 8192, 32, "qwen2.5-14b"),
+                    ("contradiction", ["3b", "3b", "llama", "contra"], 4096, 32, "llama-3.2-3b"),
+                    ("classification", ["3b", "3b", "qwen", "class"], 2048, 32, "qwen2.5-3b-cls"),
+                    ("embedding", ["bge", "embed", "small"], 512, 0, "bge-small"),
+                ]
+                models_cfg = {}
+                used = set()
+                for task_key, keywords, context, gpu_layers, name in task_defs:
+                    best = None
+                    best_score = -1
+                    for f in gguf_files:
+                        if f in used:
+                            continue
+                        fname_lower = f.stem.lower()
+                        score = sum(2 for kw in keywords if kw in fname_lower)
+                        if score > best_score:
+                            best_score = score
+                            best = f
+                    if best is None:
+                        # Pick any unused file
+                        for f in gguf_files:
+                            if f not in used:
+                                best = f
+                                break
+                    if best:
+                        used.add(best)
+                        models_cfg[task_key] = {
+                            "path": str(best),
+                            "context": context,
+                            "gpu_layers": gpu_layers,
+                            "name": name,
+                        }
+                if models_cfg:
+                    config["models"] = models_cfg
+
+    # Save config
+    config_path = DATA_DIR / "config.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+    # Mark setup complete
+    setup_data = {
+        "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "tier": req.tier,
+        "voice": req.voice,
+        "source_count": len(req.sources),
+        "models_path": req.models_path,
+        "use_existing_models": req.use_existing_models,
+    }
+    setup_file = DATA_DIR / "setup-complete.json"
+    with open(setup_file, "w") as f:
+        json.dump(setup_data, f, indent=2)
+
+    await event_manager.emit("setup_complete", setup_data)
+    return {"ok": True, "config_path": str(config_path)}
+
+
+# ---------------------------------------------------------------------------
+# Dashboard stats
+# ---------------------------------------------------------------------------
+@app.get("/api/dashboard/stats")
+async def dashboard_stats():
+    """Aggregate stats for the dashboard health bar."""
+    config = _load_config()
+    stats = {
+        "events": 0,
+        "claims": 0,
+        "contradictions": 0,
+        "narratives": 0,
+        "documents": 0,
+        "sources": 0,
+        "source_reliability": {},
+    }
+    try:
+        from src.database.graph import GraphStore
+        graph = GraphStore(
+            config.get("databases", {}).get("path", str(DATA_DIR / "graph.db")),
+            max_threads=config.get("databases", {}).get("max_threads", 4),
+        )
+        stats["events"] = graph.count_nodes("Event")
+        stats["claims"] = graph.count_nodes("Claim")
+        stats["contradictions"] = graph.count_edges("CONTRADICTS")
+        stats["narratives"] = graph.count_nodes("Narrative")
+        stats["documents"] = graph.count_nodes("Document")
+        stats["sources"] = graph.count_nodes("Source")
+
+        # Source reliability scores
+        sources = graph.get_all_sources()
+        for s in sources:
+            name = s.get("s.name", "unknown")
+            score = s.get("s.trust_score", 0.5)
+            stats["source_reliability"][name] = round(score, 2)
+
+        graph.close()
+    except Exception:
+        pass
+    return stats
+
+
+@app.get("/api/dashboard/events")
+async def dashboard_events(limit: int = 20):
+    """Recent significant events for the dashboard feed."""
+    config = _load_config()
+    events = []
+    try:
+        from src.database.graph import GraphStore
+        graph = GraphStore(
+            config.get("databases", {}).get("path", str(DATA_DIR / "graph.db")),
+            max_threads=config.get("databases", {}).get("max_threads", 4),
+        )
+        raw = graph.get_top_events(limit=limit)
+        for e in raw:
+            event_id = e.get("e.id", "")
+            claims = graph.get_event_claims(event_id) if hasattr(graph, "get_event_claims") else []
+            contradictions = []
+            try:
+                contradictions = graph.get_event_contradictions(event_id) if hasattr(graph, "get_event_contradictions") else []
+            except Exception:
+                pass
+            events.append({
+                "id": event_id,
+                "title": e.get("e.title", ""),
+                "description": e.get("e.description", ""),
+                "importance": e.get("e.importance", 0),
+                "status": e.get("e.status", "active"),
+                "start_time": e.get("e.start_time", ""),
+                "claim_count": len(claims) if isinstance(claims, list) else 0,
+                "contradiction_count": len(contradictions) if isinstance(contradictions, list) else 0,
+            })
+        graph.close()
+    except Exception:
+        pass
+    return {"events": events}
+
+
+# ---------------------------------------------------------------------------
+# Sources CRUD
+# ---------------------------------------------------------------------------
+@app.get("/api/sources")
+async def list_sources():
+    config = _load_config()
+    sources = config.get("sources", {})
+    return {
+        "rss": sources.get("rss", []),
+        "reddit": sources.get("reddit", []),
+        "youtube": sources.get("youtube", []),
+    }
+
+
+class SourceAddRequest(BaseModel):
+    type: str  # rss, reddit, youtube
+    name: str
+    url: str = ""
+    subreddit: str = ""
+    channel_id: str = ""
+    interval: int = 600
+    timeout: int = 30
+
+
+@app.post("/api/sources")
+async def add_source(req: SourceAddRequest):
+    config = _load_config()
+    if "sources" not in config:
+        config["sources"] = {}
+    source_type = req.type
+    if source_type not in config["sources"]:
+        config["sources"][source_type] = []
+    entry = {"name": req.name, "url": req.url, "interval": req.interval, "timeout": req.timeout}
+    if req.subreddit:
+        entry["subreddit"] = req.subreddit
+    if req.channel_id:
+        entry["channel_id"] = req.channel_id
+    config["sources"][source_type].append(entry)
+    _save_config(config)
+    await event_manager.emit("source_added", {"type": source_type, "name": req.name})
+    return {"ok": True}
+
+
+@app.delete("/api/sources")
+async def delete_source(body: dict):
+    source_type = body.get("type", "rss")
+    name = body.get("name", "")
+    config = _load_config()
+    sources = config.get("sources", {}).get(source_type, [])
+    config["sources"][source_type] = [s for s in sources if s.get("name") != name]
+    _save_config(config)
+    await event_manager.emit("source_removed", {"type": source_type, "name": name})
+    return {"ok": True}
+
+
+@app.put("/api/sources/{source_type}/{name}/toggle")
+async def toggle_source(source_type: str, name: str):
+    config = _load_config()
+    sources = config.get("sources", {}).get(source_type, [])
+    for s in sources:
+        if s.get("name") == name:
+            s["enabled"] = not s.get("enabled", True)
+            break
+    _save_config(config)
+    return {"ok": True}
+
+
+@app.get("/api/sources/validate")
+async def validate_source(url: str):
+    """Validate an RSS feed URL by fetching and parsing it."""
+    try:
+        import feedparser
+        feed = feedparser.parse(url)
+        if feed.bozo and not feed.entries:
+            return {"valid": False, "error": str(feed.bozo_exception)}
+        title = feed.feed.get("title", "Unknown")
+        entries = [{"title": e.get("title", ""), "published": e.get("published", "")} for e in feed.entries[:3]]
+        return {"valid": True, "title": title, "entries": entries}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
