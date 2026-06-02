@@ -61,7 +61,7 @@ class NarrativeAnalyzer(BaseAgent):
 
         narratives = []
         for cluster in clusters:
-            cids = [claims[i]["c.id"] for i in cluster]
+            cids = [claims[i]["n.id"] for i in cluster]
             texts_sample = [claims[i]["c.text"] for i in cluster[:5]]
             label = await self._generate_label(texts_sample, model)
             narratives.append(Narrative(
